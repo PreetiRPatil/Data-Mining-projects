@@ -1,0 +1,282 @@
+#below code is only for referenece, I have already created the final data, test and train files in the required format, so you can directly download
+#them from drive. Else if you want to create the file on your own you can uncomment the code blocks for the same.
+
+
+import pandas as pd
+import numpy as np
+from scipy.sparse import csr_matrix
+from scipy import sparse
+import csv
+
+#create the final data
+
+#read Vegas_Merged.csv
+
+# merged = pd.read_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Vegas_Merged.csv', encoding='utf-8-sig')
+
+# #filter data by removing businesses with no. of reviews < 2 and users who've given less than 3 reviews 
+
+# with open(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Selected_Business.csv', 'r', encoding='utf-8-sig') as readFile:
+#         reader = csv.reader(readFile)
+#         Selected_Business = list(reader)
+
+# Selected_Business_list = list(sum(Selected_Business, []))
+
+# business_filter=merged.business_id.isin(Selected_Business_list )
+# data1=merged[business_filter]
+# Users_aggregated = data1.groupby('user_id').count()[['review_id']].reset_index()
+
+# Select_Users_id_filter=Users_aggregated.review_id>2
+
+# Users=Users_aggregated[Select_Users_id_filter] 
+
+# Selected_Users_id=Users.user_id
+
+# Selected_Users_filter=data1.user_id.isin(Selected_Users_id)
+
+
+
+# final_data=data1[Selected_Users_filter]
+
+
+#load final data from file Final_data.csv
+
+#final_data = pd.read_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\Final_data.csv')
+
+## pivot ratings into movie features
+#final_data_pivot = final_data.pivot(
+#    index='user_id',
+#    columns='business_id',
+#    values='stars_reviews'
+#).fillna(0)
+
+# convert pivot matrix to csr scipy sparse matrix
+
+#final_data_sparse_matrix = csr_matrix(final_data_pivot.values)
+
+# #check contents of data frame
+# df_yelp_features.head(10)
+# Total = df_yelp_features['-153AjTW5luZPK4omEujWA'].sum()
+# print (Total)
+
+# #print matrix
+# print(mat_yelp_features)
+
+#create new csr matrix with values=0
+
+# test_data_matrix = csr_matrix((15682, 5006))
+
+# #to capture 1 rating for first business in matrix for each user which is used to test model
+# for i in range (15682): 
+#         c=0
+#         for j in range(5006):
+#                 if c != 0:
+#                     break
+#                 else:    
+#                     if final_data_sparse_matrix[i,j]!=0:
+#                         c = c+1
+#                         test_data_matrix[i,j] = final_data_sparse_matrix[i,j]
+        
+# #print new matrix to see contents
+# print(test_data_matrix)
+
+#create train matrix 
+# train_data_matrix= final_data_sparse_matrix - test_data_matrix
+
+# #print train matrix to see contents as it should not have test values
+# print(train_data_matrix)
+
+
+# #to write csr matrix to numpy file
+
+# sparse.save_npz(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Mat_Test.npz', test_data_matrix)
+# sparse.save_npz(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Mat_Train.npz', train_data_matrix)
+
+# #to read csr matrix from numpy file
+test_data_matrix = sparse.load_npz(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Mat_Test.npz')
+train_data_matrix = sparse.load_npz(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Mat_Train.npz')
+
+
+##knn implementation - use below code to generate neighbors or read nearest neighbors file saved on drive 
+
+#from sklearn.neighbors import NearestNeighbors
+
+#model_knn = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=201, n_jobs=-1)
+
+#model_knn.fit(train_data_matrix)
+
+#indices = model_knn.kneighbors(train_data_matrix, n_neighbors = 201 , return_distance=False)
+
+header=[]
+
+for i in range(200)
+	header.append(i)
+
+
+##drop first column - user index
+# indices = indices[:,1:]
+# neighbors_index = pd.DataFrame(data=indices)
+
+# #to write incides in df from nearest neighbor file:
+# with open(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\NearestNeighbors-200.csv', 'w', newline='') as csvFile:
+#     writer = csv.writer(csvFile , delimiter = ',')
+
+#     for row in indices:
+#          writer.writerow(row)
+# csvFile.close()
+
+#open indices of knn in df
+neighbors_index = pd.read_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\NearestNeighbors-200.csv', index_col = None)
+
+df = pd.DataFrame(data = train_data_matrix.toarray())
+df2 = df.replace(0, np.NaN)
+
+df_predicted = pd.DataFrame()
+
+N=[]
+
+#for loop for each user - if you can't run for all users replace len(df2) by a smaller number (like n = 1000, -this will compute rating for first only 1000 users)
+
+for user in range(len(df2.index)):
+    N = neighbors_index.loc[user]
+    a = df2.loc[N].mean(axis=0, skipna=True)
+    a = pd.Series.to_frame(a)
+    a = a.transpose()
+    df_predicted=df_predicted.append(a,ignore_index=True)
+df_predicted = df_predicted.replace(np.NaN, 0)
+
+
+#writing predicted ratings to csv
+df_predicted.to_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\Predicted_Ratings_K200.csv', index = False)
+
+
+##convert sparse test data matrix - no need to repeat this step, you can open the file TestData.csv 
+#df_test= pd.DataFrame(data = test_data_matrix.todense())
+#df_test=df_test.replace(np.NaN, 0)
+
+
+df_test = pd.read_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\TestData.csv', encoding='utf-8-sig')
+
+
+##below code is for calculating error - absolute difference between predicted ratings and actual ratings (test data)
+
+for i in range(len(df_predicted.index)):
+    for j in range(5006):
+        if df_predicted.iloc[i][j]!=0: 
+            if df_test.iloc[i][j]!=0:
+                error = df_predicted-df_test
+                #print('User:',i,' Business:',j,' Error = ',error.iloc[i][j])
+
+absolute_error = error.abs()
+
+
+# check total error - repeat this step for different values of k :
+
+# absolute_error = absolute_error.replace( 0, np.NaN)
+# error_sum = absolute_error.sum()
+# count= absolute_error.count()
+# avg_error = error_sum/count
+# avg_error.sum()/5006
+
+#####################################################
+
+
+##write error to csv  				
+absolute_error.to_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\Absolute_Error_K500.csv', index = False)	
+	
+
+#####################################################	
+#fetching recommendations for user index given as input
+
+#capture user input in variable user_index
+user_index = [int(n) for n in input('Enter user index: ').split()]
+
+#capture ratings of provided user and make recommendations 
+ratings=[]
+ratings= predicted_ratings.iloc[user_index]
+ratings = ratings.sort_values(by=[0], axis = 1,  ascending=False )
+
+n = input('Enter number of recommendations:')
+n = int(n)
+
+recommendations = []
+for i in range(n):
+    recommendations.append(ratings.columns[i])
+
+print("Top 5 recommendations for user:",recommendations)
+
+RCmapping.iloc[recommendations]
+
+####################################################
+#No. of ratings per user
+predicted_ratings.astype(bool).sum(axis=1)
+sum(predicted_ratings.astype(bool).sum(axis=1))/15682
+
+
+
+
+#####################################################
+
+
+RCmapping= pd.read_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\Vegas_Restaurant_Category_Unfiltered.csv', encoding='utf-8-sig', index_col = False)
+
+#Selected_Business_List = []
+#Selected_Business_List = final_data_pivot.columns
+#business_filter=RCmapping.business_id.isin(Selected_Business_List )
+#RCmapping=RCmapping[business_filter]
+
+#RCmapping.to_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\Restaurants_Categories_Mapping.csv', index = False)
+
+
+RCmapping= pd.read_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\Restaurants_Categories_Mapping.csv', encoding='utf-8-sig', index_col = False)
+
+
+# assign categories
+
+for i in range(len(RCmapping)):
+
+    if 'Mexican'  in RCmapping.categories[i] :
+        RCmapping.categories[i] = 'Mexican'
+    elif 'Steakhouses' in RCmapping.categories[i] or 'American' in RCmapping.categories[i] or 'Fast Food' in RCmapping.categories[i] or 'Sandwiches' in RCmapping.categories[i] or 'Burger' in RCmapping.categories[i] or 'Cafes' in RCmapping.categories[i] or 'Diners' in RCmapping.categories[i] :
+        RCmapping.categories[i] = 'American'
+    elif 'Italian' in RCmapping.categories[i] or 'Pizza' in RCmapping.categories[i] :
+        RCmapping.categories[i] = 'Italian'
+    elif  'Japanese' in RCmapping.categories[i] or 'Asian' in RCmapping.categories[i]  or 'Thai' in RCmapping.categories[i]  or 'Chinese' in RCmapping.categories[i] :
+        RCmapping.categories[i] = 'Asian'
+    else:
+        RCmapping.categories[i] = 'Others'
+## check if some rows were not assigned categories
+
+#for i in range(len(RCmapping)):
+
+#     if 'Others' in RCmapping.categories[i] or 'Mexican' in RCmapping.categories[i] or 'American' in RCmapping.categories[i] or 'Italian' in RCmapping.categories[i] or 'Asian' in RCmapping.categories[i] :
+#         continue
+#     else:
+#         print(RCmapping.categories[i])
+
+# write new category data to the file
+
+RCmapping.to_csv(r'C:\Users\sim_t\OneDrive\Documents\IS 733\Project\Data\Restaurants_Categories_Mapping.csv', index = False)
+
+Error.columns = RCmapping.categories
+
+Error_American = Error.American.mean()
+Error_American = Error_American.mean()
+print(Error_American)
+
+Error_Asian = Error.Asian.mean()
+Error_Asian = Error_Asian.mean()
+print(Error_Asian)
+
+Error_Italian = Error.Italian.mean()
+Error_Italian = Error_Italian.mean()
+print(Error_Italian)
+
+Error_Mexican = Error.Mexican.mean()
+Error_Mexican = Error_Mexican.mean()
+print(Error_Mexican)
+
+Error_Others = Error.Others.mean()
+Error_Others = Error_Others.mean()
+print(Error_Others)
+
