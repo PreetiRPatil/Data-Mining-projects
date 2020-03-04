@@ -1,5 +1,4 @@
-#below code is only for referenece, I have already created the final data, test and train files in the required format, so you can directly download
-#them from drive. Else if you want to create the file on your own you can uncomment the code blocks for the same.
+#Please uncomment the code blocks while running on the Python.
 
 
 import pandas as pd
